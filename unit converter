@@ -1,0 +1,108 @@
+import tkinter as tk
+from tkinter import ttk
+
+def convert_units():
+    try:
+        value = float(entry_value.get())
+        from_unit = combo_from.get()
+        to_unit = combo_to.get()
+        category = combo_category.get()
+
+        result = 0
+
+        if category == "Length":
+            units = {'m': 1, 'km': 1000, 'mile': 1609.34, 'ft': 0.3048}
+            result = value * units[from_unit] / units[to_unit]
+
+        elif category == "Weight":
+            units = {'g': 1, 'kg': 1000, 'lb': 453.592}
+            result = value * units[from_unit] / units[to_unit]
+
+        elif category == "Temperature":
+            if from_unit == 'C' and to_unit == 'F':
+                result = value * 9/5 + 32
+            elif from_unit == 'F' and to_unit == 'C':
+                result = (value - 32) * 5/9
+            else:
+                result = value  
+
+        elif category == "Volume":
+            units = {'ml': 0.001, 'l': 1, 'm3': 1000, 'gallon': 3.78541}
+            result = value * units[from_unit] / units[to_unit]
+
+        elif category == "Time":
+            units = {'s': 1, 'min': 60, 'hr': 3600, 'day': 86400}
+            result = value * units[from_unit] / units[to_unit]
+
+        elif category == "Speed":
+            units = {'m/s': 1, 'km/h': 0.277778, 'mph': 0.44704}
+            result = value * units[from_unit] / units[to_unit]
+
+        label_result.config(text=f"{result:.4f} {to_unit}")
+    except:
+        label_result.config(text=" Invalid input")
+
+
+def update_units(event):
+    category = combo_category.get()
+    units = []
+
+    if category == "Length":
+        units = ['m', 'km', 'mile', 'ft']
+    elif category == "Weight":
+        units = ['g', 'kg', 'lb']
+    elif category == "Temperature":
+        units = ['C', 'F']
+    elif category == "Volume":
+        units = ['ml', 'l', 'm3', 'gallon']
+    elif category == "Time":
+        units = ['s', 'min', 'hr', 'day']
+    elif category == "Speed":
+        units = ['m/s', 'km/h', 'mph']
+
+    combo_from['values'] = units
+    combo_to['values'] = units
+    if units:
+        combo_from.current(0)
+        combo_to.current(1)
+
+
+root = tk.Tk()
+root.title(" Unit Converter")
+root.geometry("360x320")
+root.configure(bg="#f0f4f8")
+
+style = ttk.Style()
+style.theme_use('default')
+style.configure("TCombobox", padding=5)
+style.configure("TButton", padding=5)
+
+
+tk.Label(root, text="Select Category:", bg="#f0f4f8", fg="#333", font=("Arial", 10, "bold")).pack(pady=5)
+combo_category = ttk.Combobox(root, values=[
+    "Length", "Weight", "Temperature", "Volume", "Time", "Speed"
+])
+combo_category.current(0)
+combo_category.pack()
+combo_category.bind("<<ComboboxSelected>>", update_units)
+
+tk.Label(root, text="Enter Value:", bg="#f0f4f8", fg="#333", font=("Arial", 10, "bold")).pack(pady=5)
+entry_value = tk.Entry(root)
+entry_value.pack()
+
+tk.Label(root, text="From Unit:", bg="#f0f4f8", fg="#333", font=("Arial", 10, "bold")).pack()
+combo_from = ttk.Combobox(root)
+combo_from.pack()
+
+tk.Label(root, text="To Unit:", bg="#f0f4f8", fg="#333", font=("Arial", 10, "bold")).pack()
+combo_to = ttk.Combobox(root)
+combo_to.pack()
+
+tk.Button(root, text="Convert", command=convert_units, bg="#4CAF50", fg="white", font=("Arial", 10, "bold")).pack(pady=10)
+
+label_result = tk.Label(root, text="Result will appear here", font=("Arial", 12), bg="#f0f4f8", fg="#000088")
+label_result.pack()
+
+update_units(None)  
+
+root.mainloop()
