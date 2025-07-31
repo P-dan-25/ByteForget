@@ -1,0 +1,80 @@
+import tkinter as tk
+
+history = []
+
+def click(event):
+    text = event.widget.cget("text")
+    if text == "=":
+        try:
+            result = str(eval(entry.get()))
+            entry.delete(0, tk.END)
+            entry.insert(tk.END, result)
+            history.append(result)
+            update_history()
+        except Exception:
+            entry.delete(0, tk.END)
+            entry.insert(tk.END, "Error")
+    elif text == "C":
+        entry.delete(0, tk.END)
+    else:
+        entry.insert(tk.END, text)
+
+def update_history():
+    history_display.delete(0, tk.END)
+    for res in reversed(history[-5:]):
+        history_display.insert(tk.END, res)
+
+def get_button_color(text):
+    if text in "0123456789":
+        return {"bg": "#f0f0f0", "fg": "black"}
+    elif text in "+-*/":
+        return {"bg": "black", "fg": "white"}
+    elif text == "=":
+        return {"bg": "#28a745", "fg": "white"}
+    elif text == "C":
+        return {"bg": "#dc3545", "fg": "white"}
+    else:
+        return {"bg": "gray", "fg": "white"}
+
+root = tk.Tk()
+root.title(" Calculator")
+root.geometry("400x580")
+root.resizable(False, False)
+root.configure(bg="#e6e6e6")
+
+
+entry = tk.Entry(root, font=("Times New Roman", 16), justify='right', bg="white", fg="black")
+entry.pack(fill=tk.BOTH, ipadx=8, pady=10, padx=10)
+
+btn_frame = tk.Frame(root, bg="#e6e6e6")
+btn_frame.pack()
+
+buttons = [
+    ['7', '8', '9', '/'],
+    ['4', '5', '6', '*'],
+    ['1', '2', '3', '-'],
+    ['C', '0', '=', '+']
+]
+
+for row in buttons:
+    f = tk.Frame(btn_frame, bg="#e6e6e6")
+    f.pack()
+    for b in row:
+        colors = get_button_color(b)
+        button = tk.Button(f, text=b, font=("Times New Roman", 16),
+                           width=5, height=2,
+                           bg=colors["bg"], fg=colors["fg"],
+                           activebackground="#cccccc", activeforeground="black")
+        button.pack(side=tk.LEFT, padx=5, pady=5)
+        button.bind("<Button-1>", click)
+
+history_label = tk.Label(root, text="Previous Results:", font=("Times New Roman", 14, "bold"),
+                         bg="#e6e6e6", fg="black")
+history_label.pack(pady=(10, 0))
+
+
+history_display = tk.Listbox(root, height=5, font=("Times New Roman", 12),
+                             bg="white", fg="black")
+history_display.pack(fill=tk.BOTH, padx=10, pady=(0, 10))
+
+root.mainloop()
