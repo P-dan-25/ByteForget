@@ -1,0 +1,188 @@
+import tkinter as tk
+from tkinter import messagebox
+from datetime import datetime, timedelta
+import time
+import threading
+import winsound
+import os
+
+ALARM_FILE = "alarms.txt"
+
+class AlarmClock:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Multi-Alarm Clock")
+        self.root.geometry("400x450")
+        self.root.resizable(False, False)
+
+        tk.Label(root, text="⏰ Alarm Clock", font=("Helvetica", 18, "bold")).pack(pady=10)
+
+        self.time_label = tk.Label(root, text="", font=("Helvetica", 16))
+        self.time_label.pack(pady=5)
+
+        # Alarm ringing message label
+        self.alarm_message_label = tk.Label(root, text="", font=("Helvetica", 12), fg="red")
+        self.alarm_message_label.pack()
+
+        self.alarms = []
+        self.load_alarms()
+        self.update_clock()
+
+        # Time input frame
+        frame = tk.Frame(root)
+        frame.pack(pady=10)
+
+        hours = [str(h).zfill(2) for h in range(1, 13)]
+        minutes = [str(m).zfill(2) for m in range(0, 60)]
+
+        self.hour_var = tk.StringVar(value="HH")
+        self.minute_var = tk.StringVar(value="MM")
+        self.period_var = tk.StringVar(value="AM")
+        self.snooze_var = tk.StringVar(value="5")
+
+        tk.OptionMenu(frame, self.hour_var, *hours).grid(row=0, column=0)
+        tk.Label(frame, text=":").grid(row=0, column=1)
+        tk.OptionMenu(frame, self.minute_var, *minutes).grid(row=0, column=2)
+        tk.OptionMenu(frame, self.period_var, "AM", "PM").grid(row=0, column=3)
+
+        # Snooze input
+        tk.Label(root, text="Snooze (minutes):").pack()
+        tk.Entry(root, textvariable=self.snooze_var, width=5).pack()
+
+        tk.Button(root, text="Add Alarm", command=self.set_alarm).pack(pady=10)
+
+        self.alarm_listbox = tk.Listbox(root, width=35)
+        self.alarm_listbox.pack(pady=10)
+
+        # Buttons for selected alarm actions
+        tk.Button(root, text="Remove Selected Alarm", command=self.remove_selected_alarm).pack(pady=2)
+        tk.Button(root, text="Set Selected Alarm", command=self.set_selected_alarm).pack(pady=2)
+        tk.Button(root, text="Ring Selected Alarm", command=self.ring_selected_alarm).pack(pady=2)
+
+        self.refresh_alarm_listbox()
+
+    def update_clock(self):
+        now = datetime.now().strftime("%I:%M:%S %p")
+        self.time_label.config(text=now)
+        current_time = datetime.now().strftime("%I:%M %p")
+
+        for alarm in self.alarms:
+            if alarm["time"] == current_time and not alarm.get("triggered", False):
+                alarm["triggered"] = True
+                threading.Thread(target=self.ring_alarm, args=(alarm,)).start()
+
+        self.root.after(1000, self.update_clock)
+
+    def set_alarm(self):
+        hour = self.hour_var.get()
+        minute = self.minute_var.get()
+        period = self.period_var.get().upper()
+        snooze_minutes = self.snooze_var.get()
+
+        if hour == "HH" or minute == "MM" or period not in ["AM", "PM"]:
+            messagebox.showerror("Invalid Input", "Please select a valid time.")
+            return
+
+        if not snooze_minutes.isdigit() or int(snooze_minutes) <= 0:
+            messagebox.showerror("Invalid Snooze", "Snooze must be a positive number.")
+            return
+
+        alarm_time = f"{hour}:{minute} {period}"
+        alarm_data = {
+            "time": alarm_time,
+            "snooze": int(snooze_minutes),
+            "triggered": False
+        }
+
+        self.alarms.append(alarm_data)
+        self.save_alarms()
+        self.refresh_alarm_listbox()
+        messagebox.showinfo("Alarm Set", f"Alarm set for {alarm_time}")
+
+    def remove_selected_alarm(self):
+        selection = self.alarm_listbox.curselection()
+        if not selection:
+            messagebox.showinfo("Select Alarm", "Please select an alarm to remove.")
+            return
+        index = selection[0]
+        self.alarms.pop(index)
+        self.save_alarms()
+        self.refresh_alarm_listbox()
+
+    def set_selected_alarm(self):
+        selection = self.alarm_listbox.curselection()
+        if not selection:
+            messagebox.showinfo("Select Alarm", "Please select an alarm to set.")
+            return
+        index = selection[0]
+        alarm = self.alarms[index]
+        alarm["triggered"] = False  # Reset triggered to enable alarm again
+        self.save_alarms()
+        messagebox.showinfo("Alarm Set", f"Alarm {alarm['time']} is now active.")
+
+    def ring_selected_alarm(self):
+        selection = self.alarm_listbox.curselection()
+        if not selection:
+            messagebox.showinfo("Select Alarm", "Please select an alarm to ring.")
+            return
+        index = selection[0]
+        alarm = self.alarms[index]
+        threading.Thread(target=self.ring_alarm, args=(alarm,)).start()
+
+    def refresh_alarm_listbox(self):
+        self.alarm_listbox.delete(0, tk.END)
+        for alarm in self.alarms:
+            self.alarm_listbox.insert(tk.END, f"{alarm['time']} (Snooze: {alarm['snooze']} min)")
+
+    def ring_alarm(self, alarm):
+        # Show alarm message below clock
+        self.alarm_message_label.config(text=f"⏰ Alarm ringing at {alarm['time']}!")
+        self.root.after(5000, lambda: self.alarm_message_label.config(text=""))  # Clear after 5 seconds
+
+        # Play beep sound 3 times
+        for _ in range(3):
+            winsound.Beep(1000, 700)
+            time.sleep(0.5)
+
+        response = messagebox.askquestion(
+            "Alarm",
+            f"⏰ It's {alarm['time']}!\nSnooze for {alarm['snooze']} minutes?"
+        )
+
+        if response == "yes":
+            snooze_until = datetime.now() + timedelta(minutes=alarm["snooze"])
+            alarm["time"] = snooze_until.strftime("%I:%M %p")
+            alarm["triggered"] = False
+        else:
+            try:
+                index = self.alarms.index(alarm)
+                self.alarms.pop(index)
+                self.refresh_alarm_listbox()
+                self.save_alarms()
+            except ValueError:
+                pass
+
+    def save_alarms(self):
+        with open(ALARM_FILE, "w") as f:
+            for alarm in self.alarms:
+                f.write(f"{alarm['time']}|{alarm['snooze']}\n")
+
+    def load_alarms(self):
+        if not os.path.exists(ALARM_FILE):
+            return
+        with open(ALARM_FILE, "r") as f:
+            for line in f:
+                try:
+                    time_part, snooze = line.strip().split("|")
+                    self.alarms.append({
+                        "time": time_part,
+                        "snooze": int(snooze),
+                        "triggered": False
+                    })
+                except:
+                    continue
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = AlarmClock(root)
+    root.mainloop()
