@@ -1,0 +1,38 @@
+import random
+
+# ASCII dice faces
+dice_faces = {
+    1: "⚀",
+    2: "⚁",
+    3: "⚂",
+    4: "⚃",
+    5: "⚄",
+    6: "⚅"
+}
+
+def roll_dice(num_dice):
+    rolls = [random.randint(1, 6) for _ in range(num_dice)]
+    faces = ' '.join(dice_faces[r] for r in rolls)
+    print(f"\nYou rolled: {faces}")
+    print(f"Sum: {sum(rolls)}\n")
+
+def main():
+    print(" Welcome to the Dice Rolling Simulator (1 or 2 Dice)")
+    
+    while True:
+        try:
+            num = int(input("Roll how many dice? (1 or 2): "))
+            if num not in [1, 2]:
+                print("Please enter 1 or 2 only.")
+                continue
+            roll_dice(num)
+
+            again = input("Roll again? (y/n): ").strip().lower()
+            if again != 'y':
+                print("Thanks for playing!")
+                break
+        except ValueError:
+            print("Please enter a valid number.")
+
+if __name__ == "__main__":
+    main()
